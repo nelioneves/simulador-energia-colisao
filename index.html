@@ -18,7 +18,6 @@
             overflow-x: hidden;
         }
         
-        /* A caixa que segura o canvas e os botões */
         #canvas-container { 
             position: relative; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
@@ -29,7 +28,6 @@
             transform-origin: top center;
         }
 
-        /* Regras de responsividade: Encolhe o simulador em telas menores (celulares) */
         @media (max-width: 1024px) { #canvas-container { transform: scale(0.9); margin-top: 20px; } }
         @media (max-width: 900px) { #canvas-container { transform: scale(0.8); margin-top: 40px; } }
         @media (max-width: 768px) { #canvas-container { transform: scale(0.7); margin-top: 60px; } }
@@ -61,29 +59,29 @@ const chaoY = 500;
 
 function setup() {
     let cnv = createCanvas(1000, 650);
-    cnv.parent('canvas-container'); // Canvas ancorado no container
+    cnv.parent('canvas-container'); 
 
-    // Controles ancorados no container usando .parent()
+    // Painel de Controles centralizado
     s_altura = createSlider(1, 5, 4, 0.5);
     s_altura.parent('canvas-container'); 
-    s_altura.position(50, 160);
+    s_altura.position(420, 190);
     s_altura.style('width', '150px');
 
     s_atrito = createSlider(0.1, 0.8, 0.4, 0.1);
     s_atrito.parent('canvas-container'); 
-    s_atrito.position(50, 230);
+    s_atrito.position(650, 190);
     s_atrito.style('width', '150px');
 
     sel_choque = createSelect();
     sel_choque.parent('canvas-container'); 
-    sel_choque.position(50, 300);
+    sel_choque.position(420, 255);
     sel_choque.option('Inelástica (Grudam)');
     sel_choque.option('Elástica (Transfere Total)');
     sel_choque.style('padding', '5px');
 
     btn_executar = createButton('LANÇAR ROBÔ');
     btn_executar.parent('canvas-container'); 
-    btn_executar.position(50, 360);
+    btn_executar.position(650, 245);
     btn_executar.style('padding', '10px 20px');
     btn_executar.style('background-color', '#b8d8be');
     btn_executar.style('border', 'none');
@@ -93,7 +91,7 @@ function setup() {
 
     btn_reset = createButton('REINICIAR');
     btn_reset.parent('canvas-container'); 
-    btn_reset.position(50, 410);
+    btn_reset.position(790, 245);
     btn_reset.style('padding', '10px 20px');
     btn_reset.style('background-color', '#f2c6c2');
     btn_reset.style('border', 'none');
@@ -107,18 +105,42 @@ function setup() {
 function draw() {
     background('#fdfaf0');
 
-    // Cabeçalho
+    // Cabeçalho (Fixo à esquerda)
     fill('#5d5d5d'); noStroke();
     textSize(24); textStyle(BOLD);
     text("Análise Mecânica Integrada", 50, 50);
     textSize(16); textStyle(NORMAL);
     text("Prof. Nélio Neves Lima", 50, 75);
 
-    // Labels dos controles
-    textSize(14);
-    text(`Altura de Lançamento: ${s_altura.value().toFixed(1)} m`, 50, 150);
-    text(`Coeficiente de Atrito (μ): ${s_atrito.value().toFixed(2)}`, 50, 220);
-    text(`Tipo de Colisão:`, 50, 290);
+    // --- PAINEL DE RESULTADOS ---
+    fill('#ffffff'); stroke('#a3a3a3'); strokeWeight(2);
+    rect(400, 30, 520, 100, 8);
+    noStroke(); fill('#5d5d5d'); textSize(14);
+    
+    let velImpacto = Math.sqrt(2 * g * s_altura.value());
+    text(`1. Velocidade na base da rampa: ${velImpacto.toFixed(2)} m/s`, 420, 55);
+    
+    if(estado === "parado" || estado === "atrito") {
+        let velPosChoque = (tipoChoque === 'Inelástica (Grudam)') ? velImpacto / 2 : velImpacto;
+        text(`2. Velocidade pós-colisão: ${velPosChoque.toFixed(2)} m/s`, 420, 80);
+        
+        distanciaPercorrida = (xCarga - inicioAtritoX) / escalaPx;
+        if(distanciaPercorrida < 0) distanciaPercorrida = 0;
+        
+        fill(estado === "parado" ? '#4a7c59' : '#c94c4c');
+        textStyle(BOLD);
+        text(`3. Distância de Frenagem: ${distanciaPercorrida.toFixed(2)} m`, 420, 105);
+        textStyle(NORMAL);
+    }
+
+    // --- PAINEL DE CONTROLES (Fundo visual) ---
+    fill('#ffffff'); stroke('#e0e0e0'); strokeWeight(1);
+    rect(400, 140, 520, 160, 8);
+    noStroke(); fill('#5d5d5d'); textSize(14);
+
+    text(`Altura de Lançamento: ${s_altura.value().toFixed(1)} m`, 420, 175);
+    text(`Coeficiente de Atrito (μ): ${s_atrito.value().toFixed(2)}`, 650, 175);
+    text(`Tipo de Colisão:`, 420, 245);
 
     let hPx = s_altura.value() * escalaPx;
     let topoRampaY = chaoY - hPx;
@@ -222,27 +244,6 @@ function draw() {
     
     fill('#e6b89c');
     rect(xCarga, yCarga - 30, 30, 30, 4);
-
-    // --- PAINEL DE RESULTADOS ---
-    fill('#ffffff'); stroke('#a3a3a3'); strokeWeight(2);
-    rect(400, 30, 520, 100, 8);
-    noStroke(); fill('#5d5d5d'); textSize(14);
-    
-    let velImpacto = Math.sqrt(2 * g * s_altura.value());
-    text(`1. Velocidade na base da rampa: ${velImpacto.toFixed(2)} m/s`, 420, 55);
-    
-    if(estado === "parado" || estado === "atrito") {
-        let velPosChoque = (tipoChoque === 'Inelástica (Grudam)') ? velImpacto / 2 : velImpacto;
-        text(`2. Velocidade pós-colisão: ${velPosChoque.toFixed(2)} m/s`, 420, 80);
-        
-        distanciaPercorrida = (xCarga - inicioAtritoX) / escalaPx;
-        if(distanciaPercorrida < 0) distanciaPercorrida = 0;
-        
-        fill(estado === "parado" ? '#4a7c59' : '#c94c4c');
-        textStyle(BOLD);
-        text(`3. Distância de Frenagem: ${distanciaPercorrida.toFixed(2)} m`, 420, 105);
-        textStyle(NORMAL);
-    }
 }
 
 function iniciar() {
