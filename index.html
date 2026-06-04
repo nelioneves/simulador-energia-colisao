@@ -105,6 +105,9 @@ function setup() {
 function draw() {
     background('#fdfaf0');
 
+    // CORREÇÃO AQUI: Leitura da variável movida para o início do quadro de desenho
+    let tipoChoque = sel_choque.value();
+
     // Cabeçalho (Fixo à esquerda)
     fill('#5d5d5d'); noStroke();
     textSize(24); textStyle(BOLD);
@@ -192,8 +195,6 @@ function draw() {
     textAlign(LEFT);
 
     // --- LÓGICA DE MOVIMENTO ---
-    let tipoChoque = sel_choque.value();
-
     if (estado === "descendo") {
         let proporcao = (xRobo - 50) / (baseRampaX - 50);
         yRobo = lerp(topoRampaY, chaoY, proporcao);
