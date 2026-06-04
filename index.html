@@ -2,11 +2,39 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Desafio do Plano Inclinado - Prof. Nélio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneio de Curling Robótico - Prof. Nélio</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #fdfaf0; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #canvas-container { position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #fdfaf0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            overflow-x: hidden;
+        }
+        
+        /* A caixa que segura o canvas e os botões */
+        #canvas-container { 
+            position: relative; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            border-radius: 12px; 
+            overflow: hidden; 
+            width: 1000px;
+            height: 650px;
+            transform-origin: top center;
+        }
+
+        /* Regras de responsividade: Encolhe o simulador em telas menores (celulares) */
+        @media (max-width: 1024px) { #canvas-container { transform: scale(0.9); margin-top: 20px; } }
+        @media (max-width: 900px) { #canvas-container { transform: scale(0.8); margin-top: 40px; } }
+        @media (max-width: 768px) { #canvas-container { transform: scale(0.7); margin-top: 60px; } }
+        @media (max-width: 600px) { #canvas-container { transform: scale(0.45); margin-top: 100px; } }
+        @media (max-width: 400px) { #canvas-container { transform: scale(0.35); margin-top: 150px; } }
     </style>
 </head>
 <body>
@@ -20,7 +48,7 @@ let btn_executar, btn_reset;
 // Variáveis de Estado
 let estado = "esperando"; 
 let xRobo = 210, yRobo = 500;
-let xCarga = 400, yCarga = 500; // Posição inicial da carga recuada para antes do atrito
+let xCarga = 400, yCarga = 500; 
 let vRobo = 0, vCarga = 0;
 let distanciaPercorrida = 0;
 
@@ -28,29 +56,33 @@ let distanciaPercorrida = 0;
 const g = 9.81;
 const escalaPx = 30; // 30 pixels = 1 metro
 const baseRampaX = 250;
-const inicioAtritoX = 550; // Exatamente 10 metros da base da rampa (300 pixels)
+const inicioAtritoX = 550; // Exatamente 10 metros da base
 const chaoY = 500;
 
 function setup() {
     let cnv = createCanvas(1000, 650);
-    cnv.parent('canvas-container');
+    cnv.parent('canvas-container'); // Canvas ancorado no container
 
-    // Controles
-    s_altura = createSlider(1, 5, 3, 0.5);
+    // Controles ancorados no container usando .parent()
+    s_altura = createSlider(1, 5, 4, 0.5);
+    s_altura.parent('canvas-container'); 
     s_altura.position(50, 160);
     s_altura.style('width', '150px');
 
     s_atrito = createSlider(0.1, 0.8, 0.4, 0.1);
+    s_atrito.parent('canvas-container'); 
     s_atrito.position(50, 230);
     s_atrito.style('width', '150px');
 
     sel_choque = createSelect();
+    sel_choque.parent('canvas-container'); 
     sel_choque.position(50, 300);
     sel_choque.option('Inelástica (Grudam)');
     sel_choque.option('Elástica (Transfere Total)');
     sel_choque.style('padding', '5px');
 
     btn_executar = createButton('LANÇAR ROBÔ');
+    btn_executar.parent('canvas-container'); 
     btn_executar.position(50, 360);
     btn_executar.style('padding', '10px 20px');
     btn_executar.style('background-color', '#b8d8be');
@@ -60,6 +92,7 @@ function setup() {
     btn_executar.mousePressed(iniciar);
 
     btn_reset = createButton('REINICIAR');
+    btn_reset.parent('canvas-container'); 
     btn_reset.position(50, 410);
     btn_reset.style('padding', '10px 20px');
     btn_reset.style('background-color', '#f2c6c2');
@@ -91,17 +124,14 @@ function draw() {
     let topoRampaY = chaoY - hPx;
 
     // --- DESENHO DO CENÁRIO ---
-    // Plano Inclinado
     fill('#d9d9d9'); noStroke();
     triangle(50, chaoY, baseRampaX, chaoY, 50, topoRampaY);
     
-    // Zona Lisa (Sem Atrito)
     fill('#d0e3f0');
     rect(baseRampaX, chaoY, inicioAtritoX - baseRampaX, 30);
     fill('#5d5d5d'); textSize(11); textAlign(CENTER);
     text("PLANO LISO (SEM ATRITO)", 350, chaoY + 20);
 
-    // Zona de Atrito
     fill('#d2ebd4');
     rect(inicioAtritoX, chaoY, 400, 30);
     fill('#5d5d5d');
@@ -122,14 +152,13 @@ function draw() {
     noStroke();
 
     // DEMARCAÇÃO CLARA DO INÍCIO DO ATRITO
-    stroke('#e6b89c'); // Laranja pastel forte
+    stroke('#e6b89c');
     strokeWeight(3);
-    drawingContext.setLineDash([8, 6]); // Linha tracejada
+    drawingContext.setLineDash([8, 6]);
     line(inicioAtritoX, chaoY - 45, inicioAtritoX, chaoY + 45);
-    drawingContext.setLineDash([]); // Retorna para linha contínua
+    drawingContext.setLineDash([]);
     noStroke();
     
-    // Etiqueta da Demarcação
     fill('#e6b89c');
     rect(inicioAtritoX - 60, chaoY - 65, 120, 20, 4);
     fill('#ffffff');
@@ -226,7 +255,7 @@ function resetar() {
     estado = "esperando";
     xRobo = 50; 
     yRobo = chaoY - (s_altura.value() * escalaPx);
-    xCarga = 470; // Carga posicionada logo antes do atrito
+    xCarga = 470; 
     yCarga = chaoY;
     vRobo = 0; 
     vCarga = 0;
