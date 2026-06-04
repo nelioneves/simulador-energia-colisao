@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Desafio do Plano Inclinado - Prof. Nélio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #fdfaf0; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+<script>
+// Variáveis da Interface
+let s_altura, s_atrito, sel_choque;
+let btn_executar, btn_reset;
+
+// Variáveis de Estado
+let estado = "esperando"; 
+let xRobo = 210, yRobo = 500;
+let xCarga = 400, yCarga = 500; // Posição inicial da carga recuada para antes do atrito
+let vRobo = 0, vCarga = 0;
+let distanciaPercorrida = 0;
+
+// Constantes Físicas e Escala
+const g = 9.81;
+const escalaPx = 30; // 30 pixels = 1 metro
+const baseRampaX = 250;
+const inicioAtritoX = 550; // Exatamente 10 metros da base da rampa (300 pixels)
+const chaoY = 500;
+
+function setup() {
+    let cnv = createCanvas(1000, 650);
+    cnv.parent('canvas-container');
+
+    // Controles
+    s_altura = createSlider(1, 5, 3, 0.5);
+    s_altura.position(50, 160);
+    s_altura.style('width', '150px');
+
+    s_atrito = createSlider(0.1, 0.8, 0.4, 0.1);
+    s_atrito.position(50, 230);
+    s_atrito.style('width', '150px');
+
+    sel_choque = createSelect();
+    sel_choque.position(50, 300);
+    sel_choque.option('Inelástica (Grudam)');
+    sel_choque.option('Elástica (Transfere Total)');
+    sel_choque.style('padding', '5px');
+
+    btn_executar = createButton('LANÇAR ROBÔ');
+    btn_executar.position(50, 360);
+    btn_executar.style('padding', '10px 20px');
+    btn_executar.style('background-color', '#b8d8be');
+    btn_executar.style('border', 'none');
+    btn_executar.style('border-radius', '5px');
+    btn_executar.style('cursor', 'pointer');
+    btn_executar.mousePressed(iniciar);
+
+    btn_reset = createButton('REINICIAR');
+    btn_reset.position(50, 410);
+    btn_reset.style('padding', '10px 20px');
+    btn_reset.style('background-color', '#f2c6c2');
+    btn_reset.style('border', 'none');
+    btn_reset.style('border-radius', '5px');
+    btn_reset.style('cursor', 'pointer');
+    btn_reset.mousePressed(resetar);
+    
+    resetar();
+}
+
+function draw() {
+    background('#fdfaf0');
+
+    // Cabeçalho
+    fill('#5d5d5d'); noStroke();
+    textSize(24); textStyle(BOLD);
+    text("Análise Mecânica Integrada", 50, 50);
+    textSize(16); textStyle(NORMAL);
+    text("Prof. Nélio Neves Lima", 50, 75);
+
+    // Labels dos controles
+    textSize(14);
+    text(`Altura de Lançamento: ${s_altura.value().toFixed(1)} m`, 50, 150);
+    text(`Coeficiente de Atrito (μ): ${s_atrito.value().toFixed(2)}`, 50, 220);
+    text(`Tipo de Colisão:`, 50, 290);
+
+    let hPx = s_altura.value() * escalaPx;
+    let topoRampaY = chaoY - hPx;
+
+    // --- DESENHO DO CENÁRIO ---
+    // Plano Inclinado
+    fill('#d9d9d9'); noStroke();
+    triangle(50, chaoY, baseRampaX, chaoY, 50, topoRampaY);
+    
+    // Zona Lisa (Sem Atrito)
+    fill('#d0e3f0');
+    rect(baseRampaX, chaoY, inicioAtritoX - baseRampaX, 30);
+    fill('#5d5d5d'); textSize(11); textAlign(CENTER);
+    text("PLANO LISO (SEM ATRITO)", 350, chaoY + 20);
+
+    // Zona de Atrito
+    fill('#d2ebd4');
+    rect(inicioAtritoX, chaoY, 400, 30);
+    fill('#5d5d5d');
+    text("ZONA DE FRENAGEM (COM ATRITO)", 700, chaoY + 20);
+    
+    // Régua de Metros
+    stroke('#a3a3a3'); strokeWeight(1);
+    line(baseRampaX, chaoY + 35, 950, chaoY + 35);
+    for(let m = 0; m <= 22; m+=2) {
+        let xMark = baseRampaX + (m * escalaPx);
+        if(xMark <= 950) {
+            line(xMark, chaoY + 30, xMark, chaoY + 40);
+            noStroke(); fill('#8e8e8e'); textSize(10); textAlign(CENTER);
+            text(m + "m", xMark, chaoY + 55);
+            stroke('#a3a3a3');
+        }
+    }
+    noStroke();
+
+    // DEMARCAÇÃO CLARA DO INÍCIO DO ATRITO
+    stroke('#e6b89c'); // Laranja pastel forte
+    strokeWeight(3);
+    drawingContext.setLineDash([8, 6]); // Linha tracejada
+    line(inicioAtritoX, chaoY - 45, inicioAtritoX, chaoY + 45);
+    drawingContext.setLineDash([]); // Retorna para linha contínua
+    noStroke();
+    
+    // Etiqueta da Demarcação
+    fill('#e6b89c');
+    rect(inicioAtritoX - 60, chaoY - 65, 120, 20, 4);
+    fill('#ffffff');
+    textSize(11);
+    textAlign(CENTER);
+    textStyle(BOLD);
+    text("INÍCIO ATRITO (10m)", inicioAtritoX, chaoY - 51);
+    textStyle(NORMAL);
+    textAlign(LEFT);
+
+    // --- LÓGICA DE MOVIMENTO ---
+    let tipoChoque = sel_choque.value();
+
+    if (estado === "descendo") {
+        let proporcao = (xRobo - 50) / (baseRampaX - 50);
+        yRobo = lerp(topoRampaY, chaoY, proporcao);
+        xRobo += 5; 
+        
+        if (xRobo >= baseRampaX) {
+            xRobo = baseRampaX;
+            yRobo = chaoY;
+            vRobo = Math.sqrt(2 * g * s_altura.value());
+            estado = "liso";
+        }
+    } 
+    else if (estado === "liso") {
+        xRobo += (vRobo * escalaPx) / 60; 
+        
+        if (xRobo + 30 >= xCarga) {
+            if (tipoChoque === 'Inelástica (Grudam)') {
+                xRobo = xCarga - 30;
+                vCarga = vRobo / 2; 
+                vRobo = vCarga;
+            } else {
+                vCarga = vRobo; 
+                vRobo = 0;
+            }
+            estado = "atrito";
+        }
+    }
+    else if (estado === "atrito") {
+        if (xCarga < inicioAtritoX) {
+            xCarga += (vCarga * escalaPx) / 60;
+            if(tipoChoque === 'Inelástica (Grudam)') xRobo = xCarga - 30;
+        } else {
+            let a = s_atrito.value() * g;
+            vCarga -= a / 60;
+            if (vCarga > 0) {
+                xCarga += (vCarga * escalaPx) / 60;
+                if(tipoChoque === 'Inelástica (Grudam)') xRobo = xCarga - 30;
+            } else {
+                vCarga = 0;
+                estado = "parado";
+            }
+        }
+    }
+
+    // --- DESENHO DOS CORPOS ---
+    fill('#9fb8c7');
+    rect(xRobo, yRobo - 30, 30, 30, 4);
+    
+    fill('#e6b89c');
+    rect(xCarga, yCarga - 30, 30, 30, 4);
+
+    // --- PAINEL DE RESULTADOS ---
+    fill('#ffffff'); stroke('#a3a3a3'); strokeWeight(2);
+    rect(400, 30, 520, 100, 8);
+    noStroke(); fill('#5d5d5d'); textSize(14);
+    
+    let velImpacto = Math.sqrt(2 * g * s_altura.value());
+    text(`1. Velocidade na base da rampa: ${velImpacto.toFixed(2)} m/s`, 420, 55);
+    
+    if(estado === "parado" || estado === "atrito") {
+        let velPosChoque = (tipoChoque === 'Inelástica (Grudam)') ? velImpacto / 2 : velImpacto;
+        text(`2. Velocidade pós-colisão: ${velPosChoque.toFixed(2)} m/s`, 420, 80);
+        
+        distanciaPercorrida = (xCarga - inicioAtritoX) / escalaPx;
+        if(distanciaPercorrida < 0) distanciaPercorrida = 0;
+        
+        fill(estado === "parado" ? '#4a7c59' : '#c94c4c');
+        textStyle(BOLD);
+        text(`3. Distância de Frenagem: ${distanciaPercorrida.toFixed(2)} m`, 420, 105);
+        textStyle(NORMAL);
+    }
+}
+
+function iniciar() {
+    if (estado === "esperando") {
+        estado = "descendo";
+    }
+}
+
+function resetar() {
+    estado = "esperando";
+    xRobo = 50; 
+    yRobo = chaoY - (s_altura.value() * escalaPx);
+    xCarga = 470; // Carga posicionada logo antes do atrito
+    yCarga = chaoY;
+    vRobo = 0; 
+    vCarga = 0;
+    distanciaPercorrida = 0;
+}
+</script>
+</body>
+</html>
